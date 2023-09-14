@@ -27,14 +27,15 @@ noised = clean_voice+noise
 
 from scipy import signal
 
-f, t, Sxx = signal.spectrogram(noised, sr, scaling='spectrum')
 
-max_freq = 4000 # Hz
-n_freq = sum(f < max_freq)
-Sxx = Sxx[:n_freq, :]
-f = f[:n_freq]
-Sxx **= 0.5
-plt.pcolormesh(t, f, Sxx, shading='gouraud', vmax=2*Sxx.mean(), cmap='inferno')
+NFFT = 1028
+mpl_specgram_window = plt.mlab.window_hanning(np.ones(NFFT))
+# https://stackoverflow.com/questions/48598994/scipy-signal-spectrogram-compared-to-matplotlib-pyplot-specgram
+f, t, Sxx = signal.spectrogram(noised, sr, detrend=False,
+                               nfft=NFFT,
+                               window=mpl_specgram_window,
+                              )
+plt.pcolormesh(t, f, 10*np.log10(Sxx), shading='gouraud', cmap='inferno')
 plt.ylabel('Frequency [Hz]')
 plt.xlabel('Time [sec]')
 plt.show()
