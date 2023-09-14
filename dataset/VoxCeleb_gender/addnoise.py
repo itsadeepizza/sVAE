@@ -35,7 +35,7 @@ f, t, Sxx = signal.spectrogram(noised, sr, detrend=False,
                                nfft=NFFT,
                                window=mpl_specgram_window,
                               )
-plt.pcolormesh(t, f, 10*np.log10(Sxx), shading='gouraud', cmap='inferno')
+plt.pcolormesh(t, f, 10*np.log10(Sxx), shading='gouraud', cmap='seismic')
 plt.ylabel('Frequency [Hz]')
 plt.xlabel('Time [sec]')
 plt.show()
