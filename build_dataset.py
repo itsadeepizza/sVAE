@@ -132,11 +132,18 @@ class Dataset_Builder():
     def make_spectrogram( self, signal: np.ndarray ) -> (np.ndarray, np.ndarray):
 
         """
-            Takse an audio signal and returns its spectrogram as a (mag, phase) tuple
+            Take an audio signal and returns its spectrogram as a (mag, phase) tuple
         """
         linear = librosa.stft( signal, n_fft = self.n_fft, win_length= self.win_length, hop_length=self.hop_length )
         mag, phase = librosa.magphase(linear)
-        return (mag.T, phase)
+        # ref = np.mean(mag ** 2)
+        # decib = librosa.amplitude_to_db(S, ref=ref)
+        phase_angle = np.angle(phase)
+        print("mag.shape: ", phase_angle.shape)
+        # Convert to float 16 for storage
+        mag = mag.astype(np.float16)
+        phase_angle = phase_angle.astype(np.float16)
+        return (mag.T, phase_angle)
 
 
 

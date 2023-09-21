@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 
-file = "dataset/VoxCeleb_gender/males/0.wav"
+file = "dataset/unprocessed/VoxCeleb_gender/males/0.wav"
 y, sr = librosa.load(file)
 
 
@@ -38,12 +38,16 @@ decib = librosa.amplitude_to_db(S, ref=ref)
 # # Print relative error for decib
 # print(f"Relative error for decib: {np.linalg.norm(decib - decib_hat) / np.linalg.norm(decib)}")
 
-decib_hat = decib
+
+decib_hat = decib.astype(np.float16)
+phase_angle = phase_angle.astype(np.float16)
 
 # Plot the spectrogram
 plt.figure(figsize=(12, 8))
-librosa.display.specshow(decib_hat,
-                            y_axis='linear', x_axis='time', cmap='seismic')
+librosa.display.specshow( decib_hat,
+                          y_axis = 'linear',
+                          x_axis = 'time',
+                          cmap   = 'seismic' )
 # Maybe use log scale?
 plt.colorbar(format='%+2.0f dB')
 plt.title('Log-frequency power spectrogram')
