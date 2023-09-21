@@ -1,7 +1,7 @@
 import librosa
 import soundfile
 import matplotlib.pyplot as plt
-import numpy as np
+import numpy             as np
 import cv2
 
 file = "dataset/unprocessed/VoxCeleb_gender/males/0.wav"
@@ -62,7 +62,7 @@ S_hat = librosa.db_to_amplitude(decib_hat, ref=ref)
 D_hat = S_hat * phase_hat
 # D_hat = S_hat
 
-y_hat = librosa.istft(D_hat, length=n)
+y_hat = librosa.istft(D_hat, length = n)
 
 # Export to file
 soundfile.write("test_hat.wav", y_hat, sr)

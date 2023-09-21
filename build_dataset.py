@@ -36,13 +36,6 @@ class Dataset_Builder():
             self.find_audio_files()
         return self._audio_files
 
-    def add_audio_files(self, path):
-        for root, dirs, files in os.walk(path):
-            for file in files:
-                if file.endswith(".mp3") or file.endswith(".wav"):
-                    full_path = os.path.join(root, file)
-                    relative_path = os.path.relpath(full_path, path)
-                    self.audio_files.append(relative_path)
 
     def get_audio_files(self):
         return self.audio_files
@@ -160,6 +153,8 @@ class Dataset_Builder():
         self._audio_files = glob.glob(self.source_path + "/**/*.wav", recursive=True)
         print(f"Found {len(self._audio_files)} audio files.")
 
+
 if __name__ == "__main__":
     builder = Dataset_Builder(source_path="./dataset/unprocessed", output_path="./dataset/spectrograms")
     builder.process_all_files()
+
