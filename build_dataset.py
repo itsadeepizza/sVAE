@@ -19,8 +19,6 @@ class Dataset_Builder():
                   win_length = 400,
                   RMS        = 0.3 ):
 
-
-
         self.source_path  = source_path
         self.output_path  = output_path
         self.hop_length   = hop_length
@@ -35,11 +33,6 @@ class Dataset_Builder():
         if self._audio_files is None:
             self.find_audio_files()
         return self._audio_files
-
-
-    def get_audio_files(self):
-        return self.audio_files
-
 
     def convert_source_path_to_output_path(self, source_path):
         output_path = re.sub(self.source_path, self.output_path, source_path)
@@ -62,14 +55,12 @@ class Dataset_Builder():
 
         return noised
 
-
     def read_file(self, file_name) -> np.ndarray:
         """
         Load an audio file and return it as a numpy array
         """
         signal, _ = sf.read(file_name)
         return signal
-
 
     def process_file(self, file_name):
         """
@@ -78,8 +69,8 @@ class Dataset_Builder():
         signal = self.read_file(file_name)
         noised_signal = self.add_noise_to_signal(signal)
 
-        clean_Tmag, clean_phase = self.make_spectrogram(signal)
-        noised_Tmag, noised_phase = self.make_spectrogram(noised_signal)
+        clean_Tmag, clean_Tphase = self.make_spectrogram(signal)
+        noised_Tmag, noised_Tphase = self.make_spectrogram(noised_signal)
 
         # Save the spectrograms
         # TODO: save the spectrograms as pickle files
@@ -88,15 +79,13 @@ class Dataset_Builder():
         os.makedirs(base_dir, exist_ok=True)
         np.savez(out_file_name,
                     clean_Tmag=clean_Tmag,
-                    clean_phase=clean_phase,
+                    clean_Tphase=clean_Tphase,
                     noised_Tmag=noised_Tmag,
-                    noised_phase=noised_phase)
-
-
+                    noised_Tphase=noised_Tphase)
 
     def process_all_files(self):
         """
-            metodo che prende tutti i file sorgenti e li trasforma in file con il noice.
+            metodo che prende tutti i file sorgenti e li trasforma in file con il noise.
             da lanciare una tantum (per preparare il dataset)
         """
         ###############################################
@@ -113,10 +102,9 @@ class Dataset_Builder():
                 print("Eccezione generata per il file {}: {}".format(file_name, str(e)))
         ##################################################
 
-
     def file_is_already_processed(self, source_file_name):
         """
-            controlla se il relativo source_file_name ha gia' il corrispettivo file con la noice aggiunta
+            controlla se il relativo source_file_name ha gia' il corrispettivo file con la noise aggiunta
         """
         output_file_name = self.convert_source_path_to_output_path(source_file_name)
 
@@ -132,13 +120,10 @@ class Dataset_Builder():
         # ref = np.mean(mag ** 2)
         # decib = librosa.amplitude_to_db(S, ref=ref)
         phase_angle = np.angle(phase)
-        print("mag.shape: ", phase_angle.shape)
         # Convert to float 16 for storage
         mag = mag.astype(np.float16)
         phase_angle = phase_angle.astype(np.float16)
-        return (mag.T, phase_angle)
-
-
+        return (mag.T, phase_angle.T)
 
     def find_audio_files( self ) -> None:
         """
