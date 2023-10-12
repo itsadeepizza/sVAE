@@ -48,6 +48,7 @@ class Encoder(nn.Module):
 
         # Create sample from standard normal distribution
         sample = torch.randn_like(mean)
+        sample.to(Tmag.device)
         # Reparameterization trick (mean + std * N(0,1),
         # multiply log_var by 0.5 because std = exp(0.5 * log_var) = sqrt(var)
         z = mean + torch.exp(0.5 * log_var) * sample
