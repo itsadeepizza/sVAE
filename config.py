@@ -5,13 +5,16 @@ class Config():
 
     root = Path(__file__).resolve().parents[0]
 
-    DROPOUT_RATE  = 0.5
+
+    INTERVAL_SAVE_MODEL = 20000
+    INTERVAL_UPDATE_LR = 20000
+    INTERVAL_TENSORBOARD_PLOT = 1000
+    INTERVAL_TENSORBOARD = 100
+    LOAD_PATH = None
+    LOAD_IDX = 0
     SIGNAL_LENGTH = 250
-    FREQ_LENGTH   = 257
-    LATENT_DIM    = 64
-    # LAYER_SIZES = [ [SIGNAL_LENGTH, FREQ_LENGTH],
-    #                 [50 , 50 ],
-    #                 []
+    DEVICE = 'cuda'
+    BATCH_SIZE = 4
 
 
 

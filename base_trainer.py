@@ -97,6 +97,7 @@ class BaseTrainer():
         # self.writer.add_text("Torchsummary", model_stat)
         # self.writer.add_text("Model name", str(self.model.__name__))
         # self.writer.add_text("Model code", "```  \n" + inspect.getsource(self.model) + "  \n```")
+        SIGNAL_LENGTH = 250
 
         # Log time
         self.writer.add_text("Time", datetime.datetime.now().strftime("%a %d %b %y - %H:%M"))
@@ -121,6 +122,10 @@ class BaseTrainer():
             os.mkdir(path)
         torch.save(model.state_dict(), f"{path}/{name}_{self.idx}.pth")
 
+    def save_models(self):
+        for model in self.models:
+            self.save_model(model, model.__class__.__name__)
+
     @staticmethod
     def plot_to_tensorboard(fig):
         """
@@ -129,9 +134,7 @@ class BaseTrainer():
         visualized in TensorBoard using the add_image function
 
         Parameters:
-            writer (tensorboard.SummaryWriter): TensorBoard SummaryWriter instance.
             fig (matplotlib.pyplot.fig): Matplotlib figure handle.
-            step (int): counter usually specifying steps/epochs/time.
         """
 
 
