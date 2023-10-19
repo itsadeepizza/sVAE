@@ -1,12 +1,12 @@
 from loader import load_dataset, AudioDataset
 from torch.utils.data import DataLoader
 from config import selected_config as conf
-from model import VariationalAutoEncoder
+from model import VariationalAutoEncoderConv as VariationalAutoEncoder
 import numpy as np
 import torch
 from base_trainer import BaseTrainer
 import os
-
+import soundfile
 
 
 
@@ -60,7 +60,15 @@ class Trainer(BaseTrainer):
 
 
     def update_lr(self):
-        self.lr = 1e-3
+        # self.lr = 1e-4
+
+        delay_lr = conf.LR_DELAY
+        if self.idx < delay_lr:
+            self.lr = conf.LR_INIT
+        else:
+            self.lr = conf.LR_INIT * (conf.LR_DECAY ** ((self.idx - delay_lr) // conf.LR_STEP))
+        # or in one func conf.LR_INIT * (conf.LR_DECAY ** (sigmoid(x-100_000)*(self.idx - delay_lr) // conf.LR_STEP))
+        # lr is multiplied by LR_DECAY every LR_STEP steps
 
 
 
@@ -70,7 +78,15 @@ class Trainer(BaseTrainer):
             self.idx += conf.BATCH_SIZE
 
             # Train a single sample
-            T_mag_hat, t_phase_hat, *_ = self.train_sample(clean_Tmag, clean_Tphase, noised_Tmag, noised_Tphase)
+            # T_mag_hat, t_phase_hat, *_ = self.train_sample(clean_Tmag, clean_Tphase, noised_Tmag, noised_Tphase)
+            #  Try to reconstruct the original signal (for DEBUG PURPOSES)
+            T_mag_hat, t_phase_hat, *_ = self.train_sample(clean_Tmag, clean_Tphase, clean_Tmag, clean_Tmag)
+
+            if self.idx % conf.INTERVAL_UPDATE_LR == 0:
+                # UPDATE LR
+                self.update_lr()
+                for g in self.optimizer.param_groups:
+                    g['lr'] = self.lr
 
 
             if self.idx % conf.INTERVAL_SAVE_MODEL < conf.BATCH_SIZE:
@@ -107,6 +123,24 @@ class Trainer(BaseTrainer):
                 self.writer.add_image("reconstructed", img, self.idx)
 
 
+                # Convert to audio and save it
+                from utility import spec2sound
+                n = 31_700
+                y = spec2sound(clean_Tmag[0].detach().to("cpu").numpy(), clean_Tphase[0].detach().to("cpu").numpy())
+                self.writer.add_audio("clean_audio", y, self.idx, sample_rate=conf.SAMPLE_RATE)
+
+                y_hat = spec2sound(T_mag_hat[0].detach().to("cpu").numpy(), t_phase_hat[0].detach().to("cpu").numpy())
+                self.writer.add_audio("reconstructed_audio", y_hat, self.idx, sample_rate=conf.SAMPLE_RATE)
+                soundfile.write(f"clean_{self.idx}.wav", y, conf.SAMPLE_RATE)
+                soundfile.write(f"reconstructed_{self.idx}.wav", y_hat, conf.SAMPLE_RATE)
+
+                # Loss tra il noised e il clean
+                CN_phase_diff =   noised_Tphase.detach() - clean_Tphase.detach()
+                CN_phase_loss = torch.mean((1 - torch.cos(CN_phase_diff.detach())) ** 2 + torch.sin(CN_phase_diff.detach()) ** 2)
+                CN_mag_loss = self.loss(noised_Tmag.detach(), clean_Tmag.detach())
+                CN_reconstruction_loss = (1 - self.beta) * CN_mag_loss + self.beta * CN_phase_loss
+                self.writer.add_scalar("CN_rec_loss", CN_reconstruction_loss, self.idx)
+
     def log_tensorboard(self):
         """Log data to tensorboard"""
 
@@ -119,6 +153,7 @@ class Trainer(BaseTrainer):
         self.kl_loss = 0
         self.mag_loss = 0
         self.phase_loss = 0
+
 
     def train_sample(self, clean_Tmag, clean_Tphase, noised_Tmag, noised_Tphase):
         """Train a single sample"""
@@ -137,7 +172,7 @@ class Trainer(BaseTrainer):
         phase_diff = Tphase_hat - clean_Tphase
         # phase_diff2 = clean_Tphase - Tphase_hat
         # phase_diff = torch.where(torch.abs(phase_diff) < np.pi, phase_diff, phase_diff2)
-        # angle_loss = torch.var(phase_diff)
+        # phase_loss = torch.var(phase_diff)
         # Or using the chord
         phase_loss = torch.mean((1 - torch.cos(phase_diff)) ** 2 + torch.sin(phase_diff) ** 2)
         mag_loss = self.loss(Tmag_hat, clean_Tmag)
@@ -146,11 +181,11 @@ class Trainer(BaseTrainer):
         # kl_loss = -0.5 * torch.sum(1 + log_var - mean.pow(2) - log_var.exp())
         kl_loss = (torch.exp(log_var) ** 2 + mean ** 2 - log_var - 0.5).mean()
         loss = (1 - self.alpha) * reconstruction_loss + self.alpha * kl_loss
-        self.mean_train_loss += loss.item()
-        self.rec_loss += reconstruction_loss.item()
-        self.kl_loss += kl_loss.item()
-        self.mag_loss += mag_loss.item()
-        self.phase_loss += phase_loss.item()
+        self.mean_train_loss += loss.item()*conf.BATCH_SIZE
+        self.rec_loss += reconstruction_loss.item()*conf.BATCH_SIZE
+        self.kl_loss += kl_loss.item()*conf.BATCH_SIZE
+        self.mag_loss += mag_loss.item()*conf.BATCH_SIZE
+        self.phase_loss += phase_loss.item()*conf.BATCH_SIZE
 
         # Backpropagation
         self.optimizer.zero_grad()
@@ -176,9 +211,10 @@ if __name__ == "__main__":
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
     conf.INTERVAL_TENSORBOARD = 100
     conf.INTERVAL_TENSORBOARD_PLOT = 1000
-    conf.BATCH_SIZE = 7
-    # conf.LOAD_PATH = r"C:\Users\p.menegatti\PycharmProjects\svae\runs\fit\23-10-18-23H32_purple_place\models"
-    # conf.LOAD_IDX = 1000
+    conf.BATCH_SIZE = 3
+    conf.SAMPLE_RATE = 22050
+    # conf.LOAD_PATH = r"C:\Users\p.menegatti\PycharmProjects\svae\runs\fit\23-10-19-00H22_brown_way\models"
+    # conf.LOAD_IDX = 2250000
 
 
     trainer = Trainer()

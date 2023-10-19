@@ -7,7 +7,7 @@ import cv2
 file = "dataset/unprocessed/VoxCeleb_gender/males/0.wav"
 y, sr = librosa.load(file)
 
-
+print(sr)
 # Add a gaussian noise in the half of the signal
 RMS = np.sqrt(np.mean(y**2)) * 0.3
 # y[0:int(len(y)/2)] = y[0:int(len(y)/2)] + np.random.normal(0, RMS, int(len(y)/2))
@@ -70,3 +70,9 @@ soundfile.write("test.wav", y, sr)
 
 # Get relative reconstruction error
 print(f"Relative reconstruction error: {np.linalg.norm(y - y_hat) / np.linalg.norm(y)}")
+
+
+"""
+audio_summary = tf.summary.audio(class_name+" sample", tf.expand_dims(audio_dec[0], 0),
+                                         tf.constant(audio_dec[1], dtype=tf.float32), max_outputs=1)
+"""

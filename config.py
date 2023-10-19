@@ -15,7 +15,10 @@ class Config():
     SIGNAL_LENGTH = 250
     DEVICE = 'cuda'
     BATCH_SIZE = 4
-
+    LR_INIT = 1e-4
+    LR_DECAY = 0.5
+    LR_STEP = 1_000
+    LR_DELAY = 5_000
 
 
     def __init__(self):

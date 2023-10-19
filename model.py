@@ -31,9 +31,9 @@ class Encoder(nn.Module):
 
         self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=5, stride=2)
 
-        self.fc_mean = nn.Linear(in_features=32 * 23 * 23, out_features=64)
+        self.fc_mean = nn.Linear(in_features=32 * 23 * 23, out_features=3000)
 
-        self.fc_log_var = nn.Linear(in_features=32 * 23 * 23, out_features=64)
+        self.fc_log_var = nn.Linear(in_features=32 * 23 * 23, out_features=3000)
 
 
     def forward(self, Tmag, Tphase):
@@ -54,13 +54,64 @@ class Encoder(nn.Module):
         z = mean + torch.exp(0.5 * log_var) * sample
         return z, mean, log_var
 
+class EncoderConv(nn.Module):
+
+    def __init__(self):
+
+        super().__init__()
+
+        self.conv1 = nn.Conv2d(in_channels=2, out_channels=16, kernel_size=10, stride=5)
+
+        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=5, stride=2)
+
+        self.conv_mean = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=5, stride=2)
+
+        self.conv_log_var = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=5, stride=2)
+
+
+    def forward(self, Tmag, Tphase):
+        Tmag = Tmag.unsqueeze(1)
+        Tphase = Tphase.unsqueeze(1)
+        x = torch.cat((Tmag, Tphase), dim=1)
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        mean = self.conv_mean(x)
+        log_var = self.conv_log_var(x)
+
+        # Create sample from standard normal distribution
+        sample = torch.randn_like(mean)
+        sample.to(Tmag.device)
+        # Reparameterization trick (mean + std * N(0,1),
+        # multiply log_var by 0.5 because std = exp(0.5 * log_var) = sqrt(var)
+        z = mean + torch.exp(0.5 * log_var) * sample
+        return z, mean, log_var
+
+class DecoderConv(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+        self.conv0 = nn.ConvTranspose2d(in_channels=64, out_channels=32, kernel_size=5, stride=2)
+        self.conv1 = nn.ConvTranspose2d(in_channels=32, out_channels=16, kernel_size=5, stride=2)
+        self.conv2 = nn.ConvTranspose2d(in_channels=16, out_channels=2,  kernel_size=10, stride=6)
+
+    def forward(self, latent):
+        x = F.relu(self.conv0(latent))
+        x = F.relu(self.conv1(x))
+        # Add a padding of 1 on the top for the second dimension only
+
+        x = self.conv2(x)
+        # Crop the output to the desired size
+        x = x[:, :, :250, :257]
+        Tmag = x[:, 0, :, :]
+        Tphase = x[:, 1, :, :]
+        return Tmag, Tphase
 
 
 class Decoder(nn.Module):
 
     def __init__(self):
         super().__init__()
-        self.fc = nn.Linear(in_features=64, out_features=32 * 23 * 24)
+        self.fc = nn.Linear(in_features=3000, out_features=32 * 23 * 24)
         self.conv1 = nn.ConvTranspose2d(in_channels=32, out_channels=16, kernel_size=5, stride=2)
         self.conv2 = nn.ConvTranspose2d(in_channels=16, out_channels=2,  kernel_size=[10, 10], padding=[0,1], stride=5)
 
@@ -80,7 +131,6 @@ class Decoder(nn.Module):
 
 
 class VariationalAutoEncoder(nn.Module):
-
     def __init__(self):
         super().__init__()
         self.encoder = Encoder()
@@ -90,3 +140,14 @@ class VariationalAutoEncoder(nn.Module):
         latent, mean, log_var = self.encoder(Tmag, Tphase)
         Tmag_hat, Tphase_hat = self.decoder(latent)
         return Tmag_hat, Tphase_hat, mean, log_var
+
+class VariationalAutoEncoderConv(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.encoder = EncoderConv()
+            self.decoder = DecoderConv()
+
+        def forward(self, Tmag, Tphase):
+            latent, mean, log_var = self.encoder(Tmag, Tphase)
+            Tmag_hat, Tphase_hat = self.decoder(latent)
+            return Tmag_hat, Tphase_hat, mean, log_var
