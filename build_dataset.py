@@ -3,9 +3,9 @@ import librosa
 import glob
 import soundfile as sf
 import os
-from tqdm import tqdm
 import re
 
+from tqdm   import tqdm
 from typing import Sequence
 
 class Dataset_Builder():
@@ -140,6 +140,7 @@ class Dataset_Builder():
 
 
 if __name__ == "__main__":
+    
     builder = Dataset_Builder(source_path="./dataset/unprocessed", output_path="./dataset/spectrograms")
     builder.process_all_files()
 

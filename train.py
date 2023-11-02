@@ -82,7 +82,7 @@ class Trainer(BaseTrainer):
             #  Try to reconstruct the original signal (for DEBUG PURPOSES)
             T_mag_hat, t_phase_hat, *_ = self.train_sample(clean_Tmag, clean_Tphase, clean_Tmag, clean_Tmag)
 
-            if self.idx % conf.INTERVAL_UPDATE_LR == 0:
+            if self.idx % conf.INTERVAL_UPDATE_LR < conf.BATCH_SIZE:
                 # UPDATE LR
                 self.update_lr()
                 for g in self.optimizer.param_groups:

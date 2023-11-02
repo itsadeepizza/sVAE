@@ -74,16 +74,18 @@ class BaseTrainer():
 
         # Create directories for logs
 
-        name = generate_docker_style_name()
-        self.log_dir = conf.ROOT_RUNS + "/runs/fit/" + name
+        name             = generate_docker_style_name()
+        self.log_dir     = conf.ROOT_RUNS + "/runs/fit/" + name
         self.summary_dir = self.log_dir + "/summary"
-        self.models_dir = self.log_dir + "/models"
-        self.test_dir = self.log_dir + "/test"
-        self.img_dir = self.log_dir + "/img"
-        os.makedirs(self.log_dir, exist_ok=True)
-        os.makedirs(self.models_dir, exist_ok=True)
-        os.makedirs(self.img_dir, exist_ok=True)
-        os.makedirs(self.test_dir, exist_ok=True)
+        self.models_dir  = self.log_dir + "/models"
+        self.test_dir    = self.log_dir + "/test"
+        self.img_dir     = self.log_dir + "/img"
+
+
+        os.makedirs(self.log_dir,    exist_ok = True)
+        os.makedirs(self.models_dir, exist_ok = True)
+        os.makedirs(self.img_dir,    exist_ok = True)
+        os.makedirs(self.test_dir,   exist_ok = True)
 
 
         # Init writer

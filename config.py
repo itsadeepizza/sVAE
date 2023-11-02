@@ -5,9 +5,11 @@ class Config():
 
     root = Path(__file__).resolve().parents[0]
 
+    RMS = 0.3
+
 
     INTERVAL_SAVE_MODEL = 20000
-    INTERVAL_UPDATE_LR = 20000
+    INTERVAL_UPDATE_LR = 1_000
     INTERVAL_TENSORBOARD_PLOT = 1000
     INTERVAL_TENSORBOARD = 100
     LOAD_PATH = None
@@ -15,9 +17,10 @@ class Config():
     SIGNAL_LENGTH = 250
     DEVICE = 'cuda'
     BATCH_SIZE = 4
-    LR_INIT = 1e-4
+    LR = 1e-3
+    LR_INIT = 1e-3
     LR_DECAY = 0.5
-    LR_STEP = 1_000
+    LR_STEP = 1_000_000
     LR_DELAY = 5_000
 
 
