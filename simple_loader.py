@@ -15,7 +15,7 @@ from torch.utils.data import Dataset, DataLoader
 import torch
 import scipy
 from config import selected_config as conf
-
+import librosa
 
 class AudioDataset(Dataset):
 
@@ -45,10 +45,12 @@ class AudioDataset(Dataset):
 
 
     def __getitem__(self, idx):
-        K = 1024
+        win_length = 1024
         path_audio = self._audio_files[idx]
-        signal = self.read_file(path_audio)
+        signal, sr = librosa.load(path_audio)
+
         # Crop the signal to the desired length
+        K = 1024 * 25 # -> batch size= 100
         if signal.shape[0] < K:
             # Pad with zeros if the signal is too short
             signal = np.pad(signal, (0, K - signal.shape[0]), mode='constant')
@@ -58,17 +60,28 @@ class AudioDataset(Dataset):
         noised_signal = self.add_noise_to_signal(signal)
 
         #Calculate STFT
-        stft_signal = self.stft(signal)
+        window = scipy.signal.windows.cosine(win_length)
+        stft_signal = np.abs(librosa.stft(signal,
+                                          n_fft=win_length,
+                                          win_length=win_length,
+                                          hop_length=win_length // 4,
+                                          window=window
+                                          ))
+
         stft_noised_signal = stft_signal
         # stft_noised_signal = self.stft(noised_signal)
+        # Take absolute value
+        stft_signal = np.abs(stft_signal) ** 2
+        stft_noised_signal = np.abs(stft_noised_signal) ** 2
+
 
         # Convert to tensors
         stft_signal = torch.from_numpy(stft_signal).float()
         stft_noised_signal = torch.from_numpy(stft_noised_signal).float()
 
         # Normalize
-        global_mean  = 2.1e-8
-        global_var = 2.9e-6
+        global_mean  = 4
+        global_var = 14_000
         stft_signal = (stft_signal - global_mean) / np.sqrt(global_var)
         stft_noised_signal = (stft_noised_signal - global_mean) / np.sqrt(global_var)
 
@@ -77,7 +90,7 @@ class AudioDataset(Dataset):
 
     def stft(self, signal):
         stft = scipy.signal.stft(signal, nperseg=1024)[2]
-        return stft[:,0]
+        return stft[:,1]
 
 
     def audio_files(self):
@@ -97,7 +110,7 @@ class AudioDataset(Dataset):
     def add_noise_to_signal(self, signal: np.ndarray) -> np.ndarray:
         """
             trasforma il file con il nome source_file_name in un file con
-            il noice e ne ritorna il path
+            il noise e ne ritorna il path
         """
         max_RMS_sample = conf.RMS * np.sqrt(np.mean(signal ** 2))
         RMS_sample     = np.random.uniform(0, max_RMS_sample)

@@ -27,7 +27,7 @@ class Trainer(BaseTrainer):
     def init_dataloader(self):
 
         dataset = AudioDataset("dataset/unprocessed")
-        self.train_dataloader  = DataLoader(dataset, batch_size=10, shuffle=True, num_workers=0)
+        self.train_dataloader  = DataLoader(dataset, batch_size=conf.BATCH_SIZE, shuffle=True, num_workers=5)
 
     def init_models(self):
 
@@ -112,6 +112,10 @@ class Trainer(BaseTrainer):
     def train_sample(self, clean_sig, noised_sig):
         """Train a single sample"""
         # Move to device
+        self.autoencoder.train()
+        # Reshape batches
+        clean_sig = clean_sig.swapaxes(1, 2).reshape(-1, 513)
+        noised_sig = noised_sig.swapaxes(1, 2).reshape(-1, 513)
         clean_sig = clean_sig.to(self.device)
 
         # Apply model
@@ -121,8 +125,10 @@ class Trainer(BaseTrainer):
 
         reconstruction_loss = self.loss(denoise_sig, clean_sig)
 
+
+
         # kl_loss = -0.5 * torch.sum(1 + log_var - mean.pow(2) - log_var.exp())
-        kl_loss = (torch.exp(log_var) ** 2 + mean ** 2 - log_var - 0.5).mean()
+        kl_loss = (torch.exp(2*log_var)  + mean ** 2 - log_var - 0.5).mean()
         loss = (1 - self.alpha) * reconstruction_loss + self.alpha * kl_loss
         self.mean_train_loss += loss.item()*conf.BATCH_SIZE
         self.rec_loss += reconstruction_loss.item()*conf.BATCH_SIZE
@@ -131,6 +137,8 @@ class Trainer(BaseTrainer):
         # Backpropagation
         self.optimizer.zero_grad()
         loss.backward()
+        # Clip gradient
+        torch.nn.utils.clip_grad_norm_(self.autoencoder.parameters(), 1)
         self.optimizer.step()
         return denoise_sig.detach(), mean.detach(), log_var.detach()
 
@@ -151,10 +159,10 @@ if __name__ == "__main__":
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
     conf.INTERVAL_TENSORBOARD = 100
     conf.INTERVAL_TENSORBOARD_PLOT = 1000
-    conf.BATCH_SIZE = 10
+    conf.BATCH_SIZE = 1
 
 
-    trainer = Trainer(alpha=0.05)
+    trainer = Trainer(alpha=0.3)
     trainer.train()
 
 # Command to run tensorboard

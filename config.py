@@ -19,8 +19,8 @@ class Config():
     BATCH_SIZE = 4
     LR = 1e-3
     LR_INIT = 1e-3
-    LR_DECAY = 0.5
-    LR_STEP = 1_000_000
+    LR_DECAY = 0.91
+    LR_STEP = 100_000_000
     LR_DELAY = 5_000
 
 
