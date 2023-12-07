@@ -49,6 +49,8 @@ class AudioDataset(Dataset):
         path_audio = self._audio_files[idx]
         signal, sr = librosa.load(path_audio)
 
+
+
         # Crop the signal to the desired length
         K = 1024 * 25 # -> batch size= 100
         if signal.shape[0] < K:
@@ -56,17 +58,31 @@ class AudioDataset(Dataset):
             signal = np.pad(signal, (0, K - signal.shape[0]), mode='constant')
         start = np.random.randint(0, signal.shape[0] - K - 1)
         signal = signal[start:start + K]
+
+        # Normalize volume
+        signal = signal / np.sqrt(np.mean(signal ** 2))
+
         # Add noise
         noised_signal = self.add_noise_to_signal(signal)
 
         #Calculate STFT
         window = scipy.signal.windows.cosine(win_length)
-        stft_signal = np.abs(librosa.stft(signal,
-                                          n_fft=win_length,
-                                          win_length=win_length,
-                                          hop_length=win_length // 4,
-                                          window=window
-                                          ))
+        stft_signal = librosa.stft(signal,
+                                  n_fft=win_length,
+                                  win_length=win_length,
+                                  hop_length=win_length // 4,
+                                  window=window
+                                  )
+
+        # Convert to magnitude + phase
+        stft_signal, phase = librosa.magphase(stft_signal)
+
+
+        # Invert stft (seems to work flawlessy)
+        signal_hat = librosa.istft(stft_signal*phase, length = K, window=window, hop_length=win_length // 4)
+        # Save as audio file
+        # sf.write("original.wav", signal, int(sr))
+        # sf.write("reconstructed.wav", signal_hat, int(sr))
 
         stft_noised_signal = stft_signal
         # stft_noised_signal = self.stft(noised_signal)
@@ -80,12 +96,16 @@ class AudioDataset(Dataset):
         stft_noised_signal = torch.from_numpy(stft_noised_signal).float()
 
         # Normalize
-        global_mean  = 4
-        global_var = 14_000
+        global_mean  = 0
+        global_var = 68210016 * 0.061
         stft_signal = (stft_signal - global_mean) / np.sqrt(global_var)
         stft_noised_signal = (stft_noised_signal - global_mean) / np.sqrt(global_var)
 
-        return stft_signal, stft_noised_signal
+
+
+        # Convert path_audio string to tensor
+        path_audio = torch.tensor([ord(c) for c in path_audio], dtype=torch.float32)
+        return stft_signal, stft_noised_signal, phase, path_audio
 
 
     def stft(self, signal):

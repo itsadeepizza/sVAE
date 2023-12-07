@@ -22,7 +22,7 @@ tot_var = 0
 tot_mean = 0
 i = 0
 n = 1000
-for _, (clean_sig, noised_sig) in zip(range(n), dataloader):
+for _, (clean_sig, noised_sig, *_) in zip(range(n), dataloader):
         i +=1
         tot_mean += clean_sig.mean()
         tot_var += clean_sig.var()

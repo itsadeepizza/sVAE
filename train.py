@@ -177,6 +177,7 @@ class Trainer(BaseTrainer):
         phase_loss = torch.mean((1 - torch.cos(phase_diff)) ** 2 + torch.sin(phase_diff) ** 2)
         mag_loss = self.loss(Tmag_hat, clean_Tmag)
         reconstruction_loss = (1 - self.beta) * mag_loss + self.beta * phase_loss
+        
 
         # kl_loss = -0.5 * torch.sum(1 + log_var - mean.pow(2) - log_var.exp())
         kl_loss = (torch.exp(log_var) ** 2 + mean ** 2 - log_var - 0.5).mean()
