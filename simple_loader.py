@@ -79,7 +79,7 @@ class AudioDataset(Dataset):
 
 
         # Invert stft (seems to work flawlessy)
-        signal_hat = librosa.istft(stft_signal*phase, length = K, window=window, hop_length=win_length // 4)
+        # signal_hat = librosa.istft(stft_signal*phase, length = K, window=window, hop_length=win_length // 4)
         # Save as audio file
         # sf.write("original.wav", signal, int(sr))
         # sf.write("reconstructed.wav", signal_hat, int(sr))

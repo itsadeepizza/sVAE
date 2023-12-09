@@ -135,6 +135,10 @@ class Trainer(BaseTrainer):
         self.mag_loss = 0
         self.phase_loss = 0
 
+    def apply(self, sfft_sig):
+        """Apply model to a single sample"""
+        denoise_sig, mean, log_var = self.autoencoder(sfft_sig)
+        return denoise_sig, mean, log_var
 
     def train_sample(self, clean_sig, noised_sig, label):
         """Train a single sample"""
@@ -146,7 +150,8 @@ class Trainer(BaseTrainer):
         clean_sig = clean_sig.to(self.device)
 
         # Apply model
-        denoise_sig, mean, log_var = self.autoencoder(clean_sig)
+        denoise_sig, mean, log_var = self.apply(clean_sig)
+
 
         # Calculate loss
 
@@ -185,8 +190,8 @@ if __name__ == "__main__":
     conf.INTERVAL_TENSORBOARD_PLOT = 1000
     conf.BATCH_SIZE = 1
 
-    conf.LOAD_PATH = r"runs/fit/23-12-07-23H06_handsome_group\models"
-    conf.LOAD_IDX = 100000
+    conf.LOAD_PATH = r"runs/fit/23-12-07-23H21_elegant_problem\models"
+    conf.LOAD_IDX = 2900000
 
 
     trainer = Trainer(alpha=0.3)
@@ -194,3 +199,4 @@ if __name__ == "__main__":
 
 # Command to run tensorboard
 # tensorboard --logdir=runs/fit
+# C:\ngrok\ngrok.exe http 6006
