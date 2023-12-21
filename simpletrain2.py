@@ -1,7 +1,8 @@
 from simple_loader import AudioDataset
 from torch.utils.data import DataLoader
 from config import selected_config as conf
-from simple_model import SimpleVAE
+# from not_so_simple_model import NSSimpleVAE as SimpleVAE
+from simple_model import SimpleVAE as SimpleVAE
 import numpy as np
 import torch
 from base_trainer import BaseTrainer
@@ -97,16 +98,42 @@ class Trainer(BaseTrainer):
                 # Invert STFT
                 phase = phase.cpu().numpy()
                 phase = phase.reshape(-1, 101)
-                denoise_sig = denoise_sig.cpu().numpy()
+
+                clean_sig_input = clean_sig.swapaxes(1, 2).reshape(-1, 513)
+                clean_sig_input = clean_sig_input.to(self.device)
+                self.autoencoder.eval()
+                with torch.no_grad():
+                    denoise_sig, mean, log_var = self.apply(clean_sig_input)
+                self.autoencoder.train()
+
+
+
+                denoise_sig = denoise_sig.detach().cpu().numpy()
                 denoise_sig = denoise_sig.swapaxes(0, 1)
-                clean_sig = clean_sig.cpu().numpy()
+                clean_sig = clean_sig.detach().cpu().numpy()
                 clean_sig = clean_sig.reshape(-1, 101)
 
                 K = 1024 * 25
                 win_length = 1024
                 window = scipy.signal.windows.cosine(win_length)
+                #  Invert normalisation
+                global_mean = 3.59
+                global_var = 6.53
+                denoise_sig = denoise_sig * np.sqrt(global_var) + global_mean
+                clean_sig = clean_sig * np.sqrt(global_var) + global_mean
+
+                # Convert to amplitude
+                ref = 0.005
+                # denoise_sig_ampl = librosa.db_to_amplitude(denoise_sig, ref=ref)
+                # clean_sig_ampl = librosa.db_to_amplitude(clean_sig, ref=ref)
+                # denoise_sig_ampl = denoise_sig**0.5
+                # clean_sig_ampl = clean_sig**0.5
+
+                # Invert STFT1
                 rec_signal_hat = librosa.istft(denoise_sig * phase, length=K, window=window, hop_length=win_length // 4)
                 orig_signal = librosa.istft(clean_sig * phase, length=K, window=window, hop_length=win_length // 4)
+
+
                 # Save as audio file on tensorboard
                 self.writer.add_audio("reconstructed", rec_signal_hat, self.idx, sample_rate=22050)
                 self.writer.add_audio("original", orig_signal, self.idx, sample_rate=22050)
@@ -186,15 +213,15 @@ class Trainer(BaseTrainer):
 if __name__ == "__main__":
     conf.INTERVAL_SAVE_MODEL = 50000
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-    conf.INTERVAL_TENSORBOARD = 100
+    conf.INTERVAL_TENSORBOARD = 1000
     conf.INTERVAL_TENSORBOARD_PLOT = 1000
     conf.BATCH_SIZE = 1
 
-    conf.LOAD_PATH = r"runs/fit/23-12-07-23H21_elegant_problem\models"
-    conf.LOAD_IDX = 2900000
+    # conf.LOAD_PATH = r"runs/fit/23-12-07-23H21_elegant_problem\models"
+    # conf.LOAD_IDX = 2900000 
 
 
-    trainer = Trainer(alpha=0.3)
+    trainer = Trainer(alpha=0.4)
     trainer.train()
 
 # Command to run tensorboard

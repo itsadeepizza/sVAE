@@ -2,3 +2,4 @@ numpy
 soundfile
 matplotlib
 scipy
+pyloudnorm

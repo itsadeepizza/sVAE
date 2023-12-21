@@ -10,11 +10,12 @@ import soundfile as sf
 K = 1024 * 25
 win_length = 1024
 
-sound_path = r"dataset/unprocessed/VoxCeleb_gender/males/3.wav"
+sound_path = r"dataset/unprocessed/VoxCeleb_gender/females/60.wav"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-conf.LOAD_PATH = r"runs/fit/23-12-07-23H21_elegant_problem\models"
-conf.LOAD_IDX = 2900000
+# conf.LOAD_PATH = r"runs/fit/23-12-07-23H21_elegant_problem\models"
+conf.LOAD_PATH = r"runs/fit/23-12-10-00H54_red_government\models"
+conf.LOAD_IDX = 13000000
 
 signal, sr = librosa.load(sound_path)
 
@@ -49,6 +50,7 @@ for signal_chunk in signal:
     stft_signal = stft_signal.swapaxes(0, 1)
     with torch.no_grad():
         denoise_sig, mean, log_var = trainer.apply(stft_signal)
+        denoise_sig = stft_signal
 
     # Invert stft (seems to work flawlessy)
     denoise_sig = denoise_sig.cpu().numpy()
@@ -57,7 +59,7 @@ for signal_chunk in signal:
     processed_signal.append(signal_hat)
 
 processed_signal = np.concatenate(processed_signal)
-sf.write("processed.wav", processed_signal, int(sr))
+sf.write("not_processed.wav", processed_signal, int(sr))
 
 
 

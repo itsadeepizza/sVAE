@@ -16,6 +16,9 @@ import torch
 import scipy
 from config import selected_config as conf
 import librosa
+import pyloudnorm as pyln
+
+
 
 class AudioDataset(Dataset):
 
@@ -46,9 +49,22 @@ class AudioDataset(Dataset):
 
     def __getitem__(self, idx):
         win_length = 1024
+        ref = 0.005
         path_audio = self._audio_files[idx]
         signal, sr = librosa.load(path_audio)
 
+        # Normalize the sample
+        # Create a Meter instance - the sample rate should match your audio
+        meter = pyln.Meter(sr)
+
+        # Measure the loudness
+        loudness = meter.integrated_loudness(signal)
+
+        # Normalize the signal (LUFS)
+        signal = pyln.normalize.loudness(signal, loudness, -23.0)
+
+        # Normalize volume (naif)
+        # signal = signal / np.sqrt(np.mean(signal ** 2))
 
 
         # Crop the signal to the desired length
@@ -59,8 +75,7 @@ class AudioDataset(Dataset):
         start = np.random.randint(0, signal.shape[0] - K - 1)
         signal = signal[start:start + K]
 
-        # Normalize volume
-        signal = signal / np.sqrt(np.mean(signal ** 2))
+
 
         # Add noise
         noised_signal = self.add_noise_to_signal(signal)
@@ -76,36 +91,41 @@ class AudioDataset(Dataset):
 
         # Convert to magnitude + phase
         stft_signal, phase = librosa.magphase(stft_signal)
+        # Convert to decibel
+        # stft_signal_db = librosa.amplitude_to_db(stft_signal, ref=ref)
+        stft_signal = np.abs(stft_signal)
 
 
-        # Invert stft (seems to work flawlessy)
-        # signal_hat = librosa.istft(stft_signal*phase, length = K, window=window, hop_length=win_length // 4)
-        # Save as audio file
+        # # Invert stft (seems to work flawlessy)
+        # stft_signal_hat = librosa.db_to_amplitude(stft_signal_db, ref=ref)
+        # signal_hat = librosa.istft(stft_signal_hat*phase, length = K, window=window, hop_length=win_length // 4)
+        # # Save as audio file
         # sf.write("original.wav", signal, int(sr))
         # sf.write("reconstructed.wav", signal_hat, int(sr))
 
-        stft_noised_signal = stft_signal
+        stft_noised_signal = stft_signal.copy()
+        # stft_noised_signal = stft_signal_db
         # stft_noised_signal = self.stft(noised_signal)
         # Take absolute value
-        stft_signal = np.abs(stft_signal) ** 2
-        stft_noised_signal = np.abs(stft_noised_signal) ** 2
+        # stft_signal = np.abs(stft_signal) ** 2
+        # stft_noised_signal = np.abs(stft_noised_signal) ** 2
 
 
         # Convert to tensors
-        stft_signal = torch.from_numpy(stft_signal).float()
+        stft_signal_db = torch.from_numpy(stft_signal).float()
         stft_noised_signal = torch.from_numpy(stft_noised_signal).float()
 
         # Normalize
-        global_mean  = 0
-        global_var = 68210016 * 0.061
-        stft_signal = (stft_signal - global_mean) / np.sqrt(global_var)
+        global_mean  = 3.59
+        global_var = 6.53
+        stft_signal_db = (stft_signal_db - global_mean) / np.sqrt(global_var)
         stft_noised_signal = (stft_noised_signal - global_mean) / np.sqrt(global_var)
 
 
 
         # Convert path_audio string to tensor
         path_audio = torch.tensor([ord(c) for c in path_audio], dtype=torch.float32)
-        return stft_signal, stft_noised_signal, phase, path_audio
+        return stft_signal_db, stft_noised_signal, phase, path_audio
 
 
     def stft(self, signal):
