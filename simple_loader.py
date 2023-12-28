@@ -55,16 +55,16 @@ class AudioDataset(Dataset):
 
         # Normalize the sample
         # Create a Meter instance - the sample rate should match your audio
-        meter = pyln.Meter(sr)
+        # meter = pyln.Meter(sr)
 
         # Measure the loudness
-        loudness = meter.integrated_loudness(signal)
+        # loudness = meter.integrated_loudness(signal)
 
         # Normalize the signal (LUFS)
-        signal = pyln.normalize.loudness(signal, loudness, -23.0)
+        # signal = pyln.normalize.loudness(signal, loudness, -23.0)
 
         # Normalize volume (naif)
-        # signal = signal / np.sqrt(np.mean(signal ** 2))
+        signal = signal / np.sqrt(np.mean(signal ** 2))
 
 
         # Crop the signal to the desired length

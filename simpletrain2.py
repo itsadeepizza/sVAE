@@ -1,8 +1,8 @@
 from simple_loader import AudioDataset
 from torch.utils.data import DataLoader
 from config import selected_config as conf
-# from not_so_simple_model import NSSimpleVAE as SimpleVAE
-from simple_model import SimpleVAE as SimpleVAE
+from not_so_simple_model import NSSimpleVAE as SimpleVAE
+# from simple_model import SimpleVAE as SimpleVAE
 import numpy as np
 import torch
 from base_trainer import BaseTrainer
